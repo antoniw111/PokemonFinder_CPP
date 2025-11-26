@@ -1,34 +1,49 @@
 cmake_minimum_required(VERSION 3.16)
 
-# Nazwa projektu i wersja standardu C++
-project(PokemonFinder VERSION 1.0 LANGUAGES CXX)
+# Nazwa projektu i wersja
+project(PokemonFinder VERSION 1.0.1 LANGUAGES CXX)
 
-# Wymagamy C++17 (nowoczesny standard, choć Qt6 lubi nawet C++20)
+# Standard C++
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Włączamy automatyczne generowanie kodu przez Qt (MOC, UIC, RCC)
-# To magia Qt, która pozwala na działanie Sygnałów i Slotów
+# Automatyzacja Qt (MOC, UIC, RCC)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTORCC ON)
 
-# Szukamy biblioteki Qt6 w systemie
-# COMPONENTS: Widgets (GUI), Network (do pobierania z API)
+# Znajdowanie bibliotek Qt6
 find_package(Qt6 REQUIRED COMPONENTS Widgets Network)
 
-# Dodajemy pliki do projektu
-# INCLUDE_DIRECTORIES mówi kompilatorowi, gdzie szukać plików .h
+# Dołączanie folderu nagłówków
 include_directories(include)
 
-# Definiujemy plik wykonywalny i pliki źródłowe
-add_executable(PokemonFinder
-    src/main.cpp
-    src/PokemonFinder.cpp
-    src/AssetManager.cpp
-    include/PokemonFinder.h
-    include/AssetManager.h
-)
+# --- OPCJA A: Warunkowa kompilacja ---
 
-# Linkujemy biblioteki Qt do naszego pliku wykonywalnego
+if(WIN32)
+    # WINDOWS: Dodajemy flagę WIN32.
+    # Sprawia ona, że system traktuje to jako aplikację GUI (WinMain),
+    # a nie konsolową (main), dzięki czemu czarne okno znika.
+    add_executable(PokemonFinder WIN32
+        src/main.cpp
+        src/PokemonFinder.cpp
+        src/AssetManager.cpp
+        include/PokemonFinder.h
+        include/AssetManager.h
+    )
+else()
+    # LINUX / MACOS: Standardowa kompilacja.
+    # Tutaj flaga WIN32 nie jest potrzebna (choć CMake by ją zignorował).
+    add_executable(PokemonFinder
+        src/main.cpp
+        src/PokemonFinder.cpp
+        src/AssetManager.cpp
+        include/PokemonFinder.h
+        include/AssetManager.h
+    )
+endif()
+
+# --- Koniec sekcji warunkowej ---
+
+# Linkowanie bibliotek Qt do pliku wykonywalnego
 target_link_libraries(PokemonFinder PRIVATE Qt6::Widgets Qt6::Network)
