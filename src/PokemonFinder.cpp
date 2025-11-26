@@ -17,7 +17,7 @@ PokemonFinder::PokemonFinder(AssetManager *manager, QWidget *parent)
 }
 
 void PokemonFinder::setupUi() {
-    setWindowTitle("Pokemon Finder C++");
+    setWindowTitle("Pokemon Finder");
     resize(500, 600);
 
     titleLabel = new QLabel("Enter Pokemon name:", this);
