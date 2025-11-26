@@ -3,6 +3,7 @@ name: Multi-Platform Build
 on:
   push:
     branches: [ "main", "master" ]
+    tags: [ "v*" ] # Wyzwól, gdy wypchniesz tag, np. git push origin v1.0
   pull_request:
     branches: [ "main", "master" ]
 
@@ -10,31 +11,31 @@ jobs:
   build:
     name: Build on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write # Wymagane, aby GitHub Action mógł stworzyć Release
     strategy:
       fail-fast: false
       matrix:
-        # Tu definiujemy systemy. GitHub odpali dwa niezależne procesy.
         os: [ubuntu-latest, windows-latest]
 
     steps:
     - uses: actions/checkout@v4
 
-    # Instalacja Qt z automatycznym wyborem architektury
+    # Instalacja Qt
     - name: Install Qt
       uses: jurplel/install-qt-action@v3
       with:
         version: '6.5.0'
-        # Sprytny warunek: jeśli Windows to MSVC, jeśli nie (Linux) to GCC
         arch: ${{ matrix.os == 'windows-latest' && 'win64_msvc2019_64' || 'gcc_64' }}
 
-    # KROKI SPECYFICZNE DLA LINUXA
+    # Zależności Linux
     - name: Install Linux Dependencies
       if: runner.os == 'Linux'
       run: |
         sudo apt-get update
         sudo apt-get install -y build-essential libgl1-mesa-dev ninja-build
 
-    # KROKI SPECYFICZNE DLA WINDOWSA
+    # Zależności Windows
     - name: Setup Ninja (Windows)
       if: runner.os == 'Windows'
       uses: ashutoshvarma/setup-ninja@master
@@ -43,14 +44,14 @@ jobs:
       if: runner.os == 'Windows'
       uses: ilammy/msvc-dev-cmd@v1
 
-    # WSPÓLNA KONFIGURACJA I BUDOWANIE
+    # Budowanie
     - name: Configure CMake
       run: cmake -B build -S . -GNinja -DCMAKE_BUILD_TYPE=Release
 
     - name: Build
       run: cmake --build build --config Release
 
-    # PAKOWANIE (DEPLOY) - WINDOWS
+    # PAKOWANIE WINDOWS (ZIP)
     - name: Package Windows
       if: runner.os == 'Windows'
       shell: cmd
@@ -59,22 +60,33 @@ jobs:
         copy build\PokemonFinder.exe package\
         windeployqt package\PokemonFinder.exe --no-translations
         
-        # Kopiowanie zasobów (jeśli są)
         if not exist package\cache mkdir package\cache
+        
+        # Pakujemy wszystko do pliku ZIP, żeby ładnie wyglądało w Releases
+        powershell Compress-Archive -Path package\* -DestinationPath PokemonFinder-Windows.zip
 
-    # PAKOWANIE (DEPLOY) - LINUX
+    # PAKOWANIE LINUX (TAR.GZ)
     - name: Package Linux
       if: runner.os == 'Linux'
       run: |
         mkdir package
         cp build/PokemonFinder package/
-        # Na Linuxie na razie tylko binarka. 
-        # Profesjonalnie robi się tu AppImage, ale to wymaga dodatkowych narzędzi.
+        # chmod +x dla pewności, że plik jest wykonywalny
+        chmod +x package/PokemonFinder
+        # Pakujemy do tar.gz z zachowaniem uprawnień (p)
+        tar -czpvf PokemonFinder-Linux.tar.gz -C package .
+    - name: Release
+      uses: softprops/action-gh-release@v1
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        files: |
+          PokemonFinder-Windows.zip
+          PokemonFinder-Linux.tar.gz
 
-    # WYSYŁANIE ARTEFAKTÓW (Dla obu systemów)
+    # Opcjonalnie: Nadal wrzucamy artefakty dla zwykłych commitów (bez taga)
     - name: Upload Artifact
+      if: "!startsWith(github.ref, 'refs/tags/')"
       uses: actions/upload-artifact@v4
       with:
-        # Nazwa pliku będzie zawierać system, np. PokemonFinder-windows-latest
         name: PokemonFinder-${{ matrix.os }}
         path: package
