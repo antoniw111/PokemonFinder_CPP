@@ -1,0 +1,80 @@
+name: Multi-Platform Build
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # Tu definiujemy systemy. GitHub odpali dwa niezależne procesy.
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    # Instalacja Qt z automatycznym wyborem architektury
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v3
+      with:
+        version: '6.5.0'
+        # Sprytny warunek: jeśli Windows to MSVC, jeśli nie (Linux) to GCC
+        arch: ${{ matrix.os == 'windows-latest' && 'win64_msvc2019_64' || 'gcc_64' }}
+
+    # KROKI SPECYFICZNE DLA LINUXA
+    - name: Install Linux Dependencies
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential libgl1-mesa-dev ninja-build
+
+    # KROKI SPECYFICZNE DLA WINDOWSA
+    - name: Setup Ninja (Windows)
+      if: runner.os == 'Windows'
+      uses: ashutoshvarma/setup-ninja@master
+
+    - name: Setup MSVC (Windows)
+      if: runner.os == 'Windows'
+      uses: ilammy/msvc-dev-cmd@v1
+
+    # WSPÓLNA KONFIGURACJA I BUDOWANIE
+    - name: Configure CMake
+      run: cmake -B build -S . -GNinja -DCMAKE_BUILD_TYPE=Release
+
+    - name: Build
+      run: cmake --build build --config Release
+
+    # PAKOWANIE (DEPLOY) - WINDOWS
+    - name: Package Windows
+      if: runner.os == 'Windows'
+      shell: cmd
+      run: |
+        mkdir package
+        copy build\PokemonFinder.exe package\
+        windeployqt package\PokemonFinder.exe --no-translations
+        
+        # Kopiowanie zasobów (jeśli są)
+        if not exist package\cache mkdir package\cache
+
+    # PAKOWANIE (DEPLOY) - LINUX
+    - name: Package Linux
+      if: runner.os == 'Linux'
+      run: |
+        mkdir package
+        cp build/PokemonFinder package/
+        # Na Linuxie na razie tylko binarka. 
+        # Profesjonalnie robi się tu AppImage, ale to wymaga dodatkowych narzędzi.
+
+    # WYSYŁANIE ARTEFAKTÓW (Dla obu systemów)
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        # Nazwa pliku będzie zawierać system, np. PokemonFinder-windows-latest
+        name: PokemonFinder-${{ matrix.os }}
+        path: package
