@@ -40,6 +40,12 @@ jobs:
       # Build your program with the given configuration
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
 
+    - name: Package Linux
+      if: runner.os == 'Linux'
+      run: |
+        mkdir package
+        cp build/PokemonFinder package/
+
     - name: Upload a Build Artifact
       uses: actions/upload-artifact@v5.0.0
       with:
