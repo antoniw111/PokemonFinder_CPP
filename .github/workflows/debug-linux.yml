@@ -1,6 +1,6 @@
 # This starter workflow is for a CMake project running on a single platform. There is a different starter workflow if you need cross-platform coverage.
 # See: https://github.com/actions/starter-workflows/blob/main/ci/cmake-multi-platform.yml
-name: CMake on a single platform
+name: Dev barnch build (Linux)
 
 on:
   push:
@@ -22,6 +22,7 @@ jobs:
     - name: Install Qt
       uses: jurplel/install-qt-action@v4.3.0
       with:
+        version: '6.5.0'
         arch: gcc_64
 
     - name: Install Linux Dependencies
