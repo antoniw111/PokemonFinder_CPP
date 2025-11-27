@@ -1,6 +1,6 @@
 # Pokemon Finder C++
 
-![Build Status](https://github.com/antoniw111/PokemonFinder_CPP/actions/workflows/ci.yml/badge.svg)
+![Build Status](https://github.com/antoniw111/PokemonFinder_CPP/actions/workflows/ci.yml/badge.svg) [![Dev branch build (Linux)](https://github.com/antoniw111/PokemonFinder_CPP/actions/workflows/debug-linux.yml/badge.svg)](https://github.com/antoniw111/PokemonFinder_CPP/actions/workflows/debug-linux.yml)
 
 A fast, modern desktop application built with **C++** and **Qt6** to search for Pokemon data using [PokéAPI](https://pokeapi.co/). This project demonstrates professional project structure, asynchronous network handling, and local caching.
 
